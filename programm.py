@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import math
 from urllib.request import urlopen
 
 print("Grafische Darstellung von Infektionsdaten")
@@ -39,35 +40,47 @@ while input_nicht_korrekt:
     bundeslaender_auswahl = bundeslaender_auswahl.upper().split(" ")
     input_nicht_korrekt = False
 
-    for bundesland_idx in bundeslaender_auswahl:
-        if bundesland_idx not in bundeslaender.keys():
-            print('{} ist kein Kürzel für ein Bundesland!'.format(bundesland_idx))
+    bundeslaender_auswahl = list(filter(None, bundeslaender_auswahl))
+
+    for bundesland in bundeslaender_auswahl:
+        if bundesland not in bundeslaender.keys():
+            print('{} ist kein Kürzel für ein Bundesland!'.format(bundesland))
             input_nicht_korrekt = True
             break
         else:
-            print(bundesland_idx, bundeslaender[bundesland_idx], '✓')
+            print(bundesland, bundeslaender[bundesland], '✓')
 
 url = "https://raw.githubusercontent.com/jgehrcke/covid-19-germany-gae/master/cases-rki-by-state.csv"
 with open("file.csv", "wb") as file:
     file.write(urlopen(url).read())
-print("CSV-Datei wurde heruntergeladen und gespeichert.")
+print("\nCSV-Datei wurde heruntergeladen und gespeichert.")
 
 daten_df = pd.read_csv("file.csv")
 daten_df.columns = [header.replace("DE-", "") for header in daten_df.columns]
 
 benoetigte_daten_df = daten_df[bundeslaender_auswahl]
 
-test = benoetigte_daten_df[bundeslaender_auswahl[0]]
+datumsangaben = daten_df.iloc[:, 0].tolist()
+datumsangaben = [datum[:10] for datum in datumsangaben]
+x_werte = [i for i in range(len(datumsangaben))]
 
-for bundesland_idx in range(len(bundeslaender_auswahl)):
-    # [i for i in range(len(benoetigte_daten_df[bundeslaender_auswahl[bundesland_idx]].tolist()))]
-    plt.plot(daten_df.iloc[:, 0].tolist(),
-             benoetigte_daten_df[bundeslaender_auswahl[bundesland_idx]].tolist(),
-             label=bundeslaender[bundeslaender_auswahl[bundesland_idx]])
+ticks = 6
+anzahl_werte = len(x_werte)
+werte_bis_tick = math.floor(anzahl_werte / ticks)
+
+for bundesland in range(len(bundeslaender_auswahl)):
+    plt.plot(x_werte,
+             benoetigte_daten_df[bundeslaender_auswahl[bundesland]].tolist(),
+             label=bundeslaender[bundeslaender_auswahl[bundesland]])
+
+    plt.xticks(x_werte[::werte_bis_tick], datumsangaben[::werte_bis_tick])
 
 plt.title("Aktuelle Covid-19-Fallzahlen")
 plt.xlabel("Datum")
 plt.ylabel("Anzahl")
 plt.legend(loc='upper left')
 plt.savefig("plot.pdf")
+
+print("\nPlot erstellt und gespeichert.")
+
 plt.show()
